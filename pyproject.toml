@@ -1,6 +1,6 @@
 [project]
 name = "mon-tokenizer"
-version = "0.1.2"
+version = "0.1.3"
 description = "A simple tokenizer for Mon text"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -61,6 +61,12 @@ build-backend = "uv_build"
 include = [
     "src/mon_tokenizer/data/*",
 ]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mon_tokenizer = ["data/*"]
 
 [dependency-groups]
 dev = [
