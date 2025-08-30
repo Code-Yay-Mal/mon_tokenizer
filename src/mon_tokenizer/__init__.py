@@ -1,6 +1,6 @@
 from .tokenizer import MonTokenizer
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 __author__ = "janakhpon"
 __email__ = "jnovaxer@gmail.com"
 
