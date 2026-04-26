@@ -174,10 +174,8 @@ Desktop.ini
 # Project specific
 *.model
 *.vocab
-*.json
-!data/*.model
-!data/*.vocab
-!data/*.json
+!src/mon_tokenizer/data/*.model
+!src/mon_tokenizer/data/*.vocab
 
 # PyPI configuration (contains tokens)
 .pypirc
