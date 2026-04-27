@@ -2,6 +2,18 @@
 
 Tokenize Mon text like a pro. No fancy stuff, just gets the job done.
 
+## Performance
+
+Trained on **41.4M Mon-related characters** (within a 92.8M total character / 176.7M byte raw corpus).
+
+| Metric | Result |
+| :--- | :--- |
+| Vocabulary size | 32,000 |
+| Avg compression | **5.22 chars/token** |
+| Round-trip accuracy | 100% |
+| Byte-fallback rate | 0.00% |
+| Model size | 977 KB |
+
 ## quick start
 
 ```bash
