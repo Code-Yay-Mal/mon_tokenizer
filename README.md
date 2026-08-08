@@ -15,7 +15,7 @@
 </p>
 
 Mon mixes with Burmese constantly and English routinely, so all three are trained
-on and measured separately. Anything else on the page — Thai, emoji, IPA, CJK —
+on and measured separately. Anything else on the page (Thai, emoji, IPA, CJK)
 round-trips through byte fallback rather than being lost.
 
 ```bash
