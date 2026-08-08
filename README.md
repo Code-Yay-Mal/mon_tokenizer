@@ -1,107 +1,163 @@
 # Mon Tokenizer
 
-Tokenize Mon text like a pro. No fancy stuff, just gets the job done.
+<p align="center">
+  <a href="https://pypi.org/project/mon-tokenizer/"><img src="https://img.shields.io/pypi/v/mon-tokenizer" alt="PyPI"></a>
+  <a href="https://pypi.org/project/mon-tokenizer/"><img src="https://img.shields.io/pypi/pyversions/mon-tokenizer" alt="Python versions"></a>
+  <a href="https://huggingface.co/janakhpon/mon_tokenizer"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow" alt="Hugging Face"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-000000.svg" alt="Ruff"></a>
+  <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/package%20manager-uv-purple" alt="uv"></a>
+  <img src="https://img.shields.io/badge/language-Mon%20(mnw)-orange" alt="Mon language">
+</p>
 
-## Performance
+<p align="center">
+  <strong>Unigram tokenizer for Mon (mnw), Burmese and English, with full byte fallback</strong>
+</p>
 
-Trained on **41.4M Mon-related characters** (within a 92.8M total character / 176.7M byte raw corpus).
-
-| Metric | Result |
-| :--- | :--- |
-| Vocabulary size | 32,000 |
-| Avg compression | **5.22 chars/token** |
-| Round-trip accuracy | 100% |
-| Byte-fallback rate | 0.00% |
-| Model size | 977 KB |
-
-## quick start
+Mon mixes with Burmese constantly and English routinely, so all three are trained
+on and measured separately. Anything else on the page — Thai, emoji, IPA, CJK —
+round-trips through byte fallback rather than being lost.
 
 ```bash
-# using pip
 pip install mon-tokenizer
-
-# using uv
-uv add mon-tokenizer
 ```
 
 ```python
 from mon_tokenizer import MonTokenizer
 
 tokenizer = MonTokenizer()
-text = "ဂွံအခေါင်အရာမွဲသ္ဂောံဒုင်စသိုင်ကၠာကၠာရ။"
+result = tokenizer.encode("ဂွံအခေါင်အရာမွဲသ္ဂောံဒုင်စသိုင်ကၠာကၠာရ။")
 
-# tokenize
-result = tokenizer.encode(text)
-print(result["pieces"])  # ['▁ဂွံ', 'အခေါင်', 'အရာ', 'မွဲ', 'သ္ဂောံ', 'ဒုင်စသိုင်', 'ကၠာ', 'ကၠာ', 'ရ', '။']
-print(result["ids"])     # [1234, 5678, ...]
+result["pieces"]  # ['▁ဂွံ', 'အခေါင်အရာ', 'မွဲ', 'သ္ဂောံ', 'ဒုင်စသိုင်', 'ကၠာ', 'ကၠာရ။']
+result["ids"]  # token ids
+result["text"]  # the normalized string that was encoded
 
-# decode
-decoded = tokenizer.decode(result["pieces"])
-print(decoded)  # ဂွံအခေါင်အရာမွဲသ္ဂောံဒုင်စသိုင်ကၠာကၠာရ။
+assert tokenizer.decode_ids(result["ids"]) == result["text"]
 ```
 
-### Tokenizer in Hugging Face Format
+Also on the Hub, producing identical ids:
 
 ```python
 from transformers import AutoTokenizer
 
-# load tokenizer
 tokenizer = AutoTokenizer.from_pretrained("janakhpon/mon_tokenizer")
-
-# tokenize
-text = "ပ္ဍဲအခိင်မာံနဲသဵု မဒှ်ဘဝကွးဘာတက္ကသိုလ်ဂှ် ပါလုပ်ချဳဓရာင်ကၠုင်"
-tokens = tokenizer(text, return_tensors="pt")
-input_ids = tokens["input_ids"][0]
-
-print("token ids:", input_ids.tolist())
-print("tokens:", tokenizer.convert_ids_to_tokens(input_ids))
-print("decoded:", tokenizer.decode(input_ids, skip_special_tokens=True))
 ```
 
-## cli
+## Measured
 
-```bash
-# tokenize
-mon-tokenizer "ဂွံအခေါင်အရာမွဲသ္ဂောံဒုင်စသိုင်ကၠာကၠာရ။"
+Vocabulary 64,256 · trained on the train split of 893,936 lines / 85.8M
+characters · scored on the **whole** validation split.
 
-# verbose output
-mon-tokenizer -v "ဂွံအခေါင်အရာမွဲသ္ဂောံဒုင်စသိုင်ကၠာကၠာရ။"
+| stratum | chars/token | syllable violations | round-trip | byte fallback |
+| :--- | ---: | ---: | ---: | ---: |
+| Mon | 4.686 | 1.07% *(n=492,469)* | **100%** | 0.00% |
+| Burmese | 4.117 | 0.93% *(n=25,546)* | **100%** | 0.00% |
+| English | 4.112 | — *(n=0)* | **100%** | 0.02% |
+| mixed script | 3.804 | 0.81% *(n=28,133)* | **100%** | 0.19% |
 
-# decode tokens
-mon-tokenizer -d -t "▁ဂွံ,အခေါင်,အရာ,မွဲ,သ္ဂောံ,ဒုင်စသိုင်,ကၠာ,ကၠာ,ရ,။"
+100% of characters in the Mon validation split are single tokens.
 
-# interactive mode
-mon-tokenizer
+Compression describes a corpus, not a tokenizer — quote it with the corpus.
+Violations count token boundaries inside a Myanmar syllable; the denominator is
+given because English legitimately has none. Round-trip compares after
+normalization, which is a deliberate transform.
+
+`model_card()` returns these machine-readably, and a test fails if they drift
+from what the artifact does.
+
+## Round-trip, and its two known limits
+
+```python
+for text in ["🙏 emoji", "ภาษาไทย", "漢字", "Ωπ√∫", "ကျော် page 42 — “quoted” ၏"]:
+    r = tokenizer.encode(text)
+    assert tokenizer.decode_ids(r["ids"]) == r["text"]
 ```
+
+Without byte fallback, characters outside the vocabulary aren't flagged — they're
+**deleted**, leaving fluent-looking output with content missing. That matters if
+you feed OCR output back into a corpus.
+
+Two inputs are known not to round-trip. The loss happens at `encode`, so no
+decoder can recover it:
+
+```python
+tokenizer.encode(" abc")["ids"] == tokenizer.encode("abc")["ids"]  # True
+tokenizer.encode("a b")["ids"] == tokenizer.encode("a▁b")["ids"]  # True
+```
+
+A single leading space is dropped, and a literal U+2581 is read as a space. The
+table above still holds: the corpus it was measured on is stripped per line and
+contains no U+2581, so it excludes both cases by construction rather than
+disproving them. Both are recorded as xfail tests.
+
+Fixing this needs `prepend_scheme="never"`, which changes every token id and so
+requires a retrain and a new Hub artifact. Deferred on purpose, because id
+stability is worth more than these two cases. Interior and trailing whitespace,
+tabs, newlines, NUL and control characters all round-trip.
+
+## Normalization
+
+Applied automatically, and stored **inside** the artifact so it cannot drift from
+the model: invisible characters stripped, Unicode space separators folded to
+`U+0020`, then NFC. Runs of spaces are preserved.
 
 ## API
 
-- `encode(text: str)` → `{"pieces": list, "ids": list, "text": str}`
-- `decode(pieces: list)` → `str`
-- `decode_ids(ids: list)` → `str`
-- `get_vocab_size()` → `int`
-- `get_vocab()` → `dict`
+| | |
+| :--- | :--- |
+| `encode(text)` | `{"pieces": [...], "ids": [...], "text": normalized}` |
+| `encode_ids(text)` / `encode_batch(texts)` | `list[int]` / `list[list[int]]` |
+| `decode(pieces)` / `decode_ids(ids)` | `str` |
+| `normalize(text)` | the artifact's own normalizer |
+| `get_vocab_size()` / `get_vocab()` | `int` / `dict[str, int]` |
+| `id_to_piece(id)` / `piece_to_id(piece)` | `str` / `int` |
+| `unk_id` `bos_id` `eos_id` `pad_id` | `0` `1` `2` `3` |
+| `model_card()` | `artifact_version`, corpus digest, config, measured metrics |
 
-## Dev Setup
+The artifact is cached by path, so constructing many instances is cheap.
+
+## CLI
 
 ```bash
-git clone git@github.com:Code-Yay-Mal/mon_tokenizer.git
-cd mon_tokenizer
-uv sync --dev
-uv run pytest
+pip install 'mon-tokenizer[cli]'
 
-# Release workflow
-uv version --bump patch
-git add pyproject.toml
-git commit -m "bump version"
-git tag v0.1.5
-git push origin main --tags
+mon-tokenizer "ဂွံအခေါင်အရာမွဲ"          # tokenize
+mon-tokenizer -v "ဂွံအခေါင်အရာမွဲ"       # per-token table
+mon-tokenizer -d --ids "316,12644,294"   # decode ids
 ```
 
-## Resources
+Exit codes: `0` ok · `1` usage · `2` artifact failed to load · `130` interrupted.
 
-- [hugging face model](https://huggingface.co/janakhpon/mon_tokenizer)
+## Upgrading from 0.2.x
 
-## License
+**Every token id has changed.** Rebuild any embedding matrix built against 0.2.x,
+or pin `mon-tokenizer<1.0` — it stays on PyPI and works.
 
-MIT - do whatever you want with it.
+## Requirements
+
+Python 3.11+. Two direct dependencies: `tokenizers` and `regex`. The install is
+17 packages / ~30MB, because `tokenizers` requires `huggingface-hub`.
+
+## Development
+
+```bash
+uv sync --all-extras
+uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest
+```
+
+Retraining, releasing and the house rules for tests:
+[docs/how_to_contribute.md](docs/how_to_contribute.md).
+
+## Design
+
+[docs/architecture.md](docs/architecture.md) — every decision with the measurement
+behind it and the condition that would reverse it: algorithm, vocabulary size,
+why grapheme clusters are the wrong unit for Myanmar, and what was rejected.
+
+## Links
+
+- [Hugging Face](https://huggingface.co/janakhpon/mon_tokenizer)
+- [MonCorpusCollection](https://github.com/MonDevHub/MonCorpusCollection) — the corpus
+- [Awesome Mon NLP](https://github.com/janakhpon/awesome-mon-nlp) — the ecosystem
+
+MIT.

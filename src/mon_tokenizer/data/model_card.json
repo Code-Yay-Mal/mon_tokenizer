@@ -1,0 +1,98 @@
+{
+  "name": "mon-tokenizer",
+  "artifact_version": "1.0.0",
+  "algorithm": "unigram",
+  "vocab_size": 64256,
+  "languages": [
+    "mnw",
+    "mya",
+    "eng"
+  ],
+  "config": {
+    "vocab_size": 64000,
+    "special_tokens": [
+      "<unk>",
+      "<s>",
+      "</s>",
+      "<pad>"
+    ],
+    "unk_token": "<unk>",
+    "byte_fallback": true,
+    "enforce_syllable_atomicity": false,
+    "max_piece_length": 16
+  },
+  "corpus": {
+    "lines": 893936,
+    "chars": 85793599,
+    "by_bucket": {
+      "mon": 592670,
+      "burmese": 36341,
+      "english": 264925
+    },
+    "source_digest": "11941a573a5e0c618edbc91d34dd787d"
+  },
+  "metrics": {
+    "mon": {
+      "lines": 29600,
+      "chars": 2280192,
+      "tokens": 486631,
+      "chars_per_token": 4.686,
+      "tokens_per_line": 16.4,
+      "roundtrip": 1.0,
+      "fallback_rate": 4e-05,
+      "violation_rate": 0.01074,
+      "syllables": 492469,
+      "unreconstructable": 4
+    },
+    "burmese": {
+      "lines": 1792,
+      "chars": 102682,
+      "tokens": 24942,
+      "chars_per_token": 4.117,
+      "tokens_per_line": 13.9,
+      "roundtrip": 1.0,
+      "fallback_rate": 0.0,
+      "violation_rate": 0.00928,
+      "syllables": 25546,
+      "unreconstructable": 0
+    },
+    "english": {
+      "lines": 13104,
+      "chars": 1864318,
+      "tokens": 453350,
+      "chars_per_token": 4.112,
+      "tokens_per_line": 34.6,
+      "roundtrip": 1.0,
+      "fallback_rate": 0.00021,
+      "violation_rate": 0.0,
+      "syllables": 0,
+      "unreconstructable": 7
+    },
+    "mixed": {
+      "lines": 2420,
+      "chars": 226127,
+      "tokens": 59440,
+      "chars_per_token": 3.804,
+      "tokens_per_line": 24.6,
+      "roundtrip": 1.0,
+      "fallback_rate": 0.00195,
+      "violation_rate": 0.0081,
+      "syllables": 28133,
+      "unreconstructable": 11
+    },
+    "coverage": {
+      "distinct": 199,
+      "single_token": 1.0
+    }
+  },
+  "notes": {
+    "compression_is_corpus_dependent": "chars_per_token describes this corpus, not the tokenizer. Quote it with the corpus or not at all.",
+    "violation_rate": "Share of multi-character Myanmar syllables split by a token boundary, using the segmenter in syllable.py rather than Unicode grapheme clusters, which do not bound a Myanmar syllable. Report the denominator with the rate.",
+    "roundtrip": "Compared after normalization on both sides. Normalization is a deliberate transform, not a loss.",
+    "byte_fallback": "Every input round-trips, including Thai, emoji and CJK, at 1-4 tokens per character. Only the guaranteed alphabet is cheap."
+  },
+  "eval": {
+    "split": "val",
+    "sampling": "whole split, no cap"
+  }
+}

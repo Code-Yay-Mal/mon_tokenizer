@@ -1,46 +1,55 @@
 [project]
 name = "mon-tokenizer"
-version = "0.2.3"
-description = "A simple tokenizer for Mon text"
+version = "1.0.0"
+description = "A Unigram tokenizer for Mon (mnw), Burmese and English, with full byte fallback"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     { name = "Code-Yay-Mal", email = "jnovaxer@gmail.com" }
 ]
-license = { text = "MIT" }
-keywords = ["mon", "tokenizer", "nlp", "myanmar", "text-processing"]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["mon", "mnw", "tokenizer", "nlp", "myanmar", "burmese", "text-processing"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Text Processing :: Linguistic",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+# One runtime dependency, and it is a Rust wheel with no Python dependencies of
+# its own. v0.2.3 shipped `twine` — a package PUBLISHING tool — as a runtime
+# dependency, so installing this to tokenize a string pulled 31 packages / 25MB.
+#
+# `tokenizers` replaces `sentencepiece` in 1.0.0. The reason is not fashion: the
+# shipped v1 model raises `RuntimeError: INTERNAL: piece is too long` on
+# sentencepiece 0.2.2, because that release validates piece length on load and
+# the model carries longer grapheme-cluster symbols. A pure-Rust loader reading a
+# self-describing JSON artifact has no equivalent trap, and it lets the
+# normalizer live inside the artifact instead of being a precondition callers
+# must remember.
 dependencies = [
-    "sentencepiece>=0.1.99",
-    "click>=8.0.0",
-    "rich>=13.0.0",
-    "twine>=6.1.0",
+    "tokenizers>=0.21.0",
+    # `syllable.py` and `metrics.py` are shipped modules and import this for `\X`
+    # and the Myanmar syllable pattern. It was briefly dev-only, which meant
+    # `from mon_tokenizer.metrics import measure` raised ImportError on a clean
+    # install. A shipped module that cannot be imported is a defect, and `regex`
+    # is a single wheel with no dependencies of its own.
+    "regex>=2024.0.0",
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-]
-docs = [
-    "sphinx>=7.0.0",
-    "sphinx-rtd-theme>=1.3.0",
+# The `mon-tokenizer` console script only. Importing the library needs none of it.
+cli = [
+    "click>=8.3.0",
+    "rich>=14.2.0",
 ]
 
 [project.urls]
@@ -53,22 +62,76 @@ Changelog = "https://github.com/Code-Yay-Mal/mon_tokenizer/blob/main/CHANGELOG.m
 [project.scripts]
 mon-tokenizer = "mon_tokenizer.cli:main"
 
+# PEP 735. There were previously TWO dev declarations — this one, and a
+# `[project.optional-dependencies].dev` listing pytest, pytest-cov, black, isort,
+# mypy and ruff. `uv sync --dev` (the command README and CONTRIBUTING both give)
+# resolves THIS table, so ruff, mypy, black and isort were never actually
+# installed and the declared quality tooling was decorative.
+#
+# One table now. black and isort are gone: `ruff format` and ruff's `I` rules do
+# both jobs, and three formatters in one repo is three ways to disagree.
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.16.1",
+    "mypy>=2.3.0",
+    "build>=1.3.0",
+]
+
 [build-system]
 requires = ["uv_build>=0.8.13,<0.9.0"]
 build-backend = "uv_build"
 
-[tool.uv-build]
-include = [
-    "src/mon_tokenizer/data/*",
+# The correct table name is `[tool.uv.build-backend]`. This file previously had
+# `[tool.uv-build]`, plus `[tool.setuptools.packages.find]`,
+# `[tool.setuptools.package-data]` and a MANIFEST.in — four data-inclusion
+# mechanisms, all four inert. Proof: the installed
+# `mon_tokenizer-0.2.3.dist-info/uv_build.json` was literally `{}`.
+#
+# The 1MB model shipped anyway, because uv_build includes everything under the
+# module directory by default. Shipping by accident is not shipping by design,
+# and nothing would have caught it: no test asserted the model was in the wheel.
+# tests/test_packaging.py::test_the_model_is_present_in_a_built_wheel does now.
+[tool.uv.build-backend]
+module-name = "mon_tokenizer"
+module-root = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "N", "UP", "RUF"]
+# Same ignores as mon_OCR, for the same reasons. Two repositories with one
+# maintainer diverging on lint config is friction with no upside.
+ignore = [
+    "E501",   # line too long — the formatter owns code width; prose is not its job
+    # This repository is Mon text and prose about Mon text. RUF001-003 flag
+    # characters that "look like" ASCII — en dashes in sentences, and Myanmar
+    # codepoints in every fixture and docstring. Enabled, they fire on the
+    # subject matter itself.
+    "RUF001",
+    "RUF002",
+    "RUF003",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.ruff.format]
+quote-style = "double"
 
-[tool.setuptools.package-data]
-mon_tokenizer = ["data/*"]
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+check_untyped_defs = true
+warn_unused_configs = true
 
-[dependency-groups]
-dev = [
-    "pytest>=8.4.1",
+[[tool.mypy.overrides]]
+module = ["tokenizers.*", "regex.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "slow: builds a wheel; seconds rather than milliseconds",
 ]

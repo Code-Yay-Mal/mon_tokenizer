@@ -1,2 +1,0 @@
-include src/mon_tokenizer/data/*
-recursive-include src/mon_tokenizer/data *
