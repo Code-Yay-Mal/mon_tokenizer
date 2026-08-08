@@ -1,16 +1,54 @@
+# Publishing to PyPI is irreversible: a version number can be yanked but never
+# reused. This workflow previously built and published on any `v*` tag with no
+# test run and no lint, which is how `twine` shipped as a runtime dependency and
+# how `__version__` stayed at 0.1.5 across four releases.
+#
+# It now runs the full CI suite first and publishes only if it passes.
+
 name: release
+
 on:
   push:
     tags:
       - "v*"
+
 permissions:
   contents: read
-  id-token: write
+
 jobs:
+  # The same jobs that run on every pull request, re-run against the tagged
+  # commit. Reusing the workflow rather than copying the steps means the gate
+  # cannot drift from the checks it is supposed to be enforcing.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   publish:
+    needs: ci
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # OIDC trusted publishing — no long-lived PyPI token in repository secrets.
+      # This was already right and is kept.
+      id-token: write
+    # Attach a protected environment in repository settings to require manual
+    # approval before a release leaves the machine. Cheap, and the last stop
+    # before something irreversible.
+    environment: pypi
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
       - run: uv build --no-sources
+      - name: the tag must match the version being published
+        # A tag that disagrees with pyproject.toml publishes a version nobody
+        # asked for. The repository already has this class of drift: CHANGELOG
+        # documents a 0.2.0 release that has no tag, while v0.2.2 and v0.2.3 are
+        # tagged and undocumented.
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(uv version --short)
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "tag v$TAG does not match pyproject.toml version $VERSION"
+            exit 1
+          fi
+          echo "publishing $VERSION"
       - run: uv publish --trusted-publishing always

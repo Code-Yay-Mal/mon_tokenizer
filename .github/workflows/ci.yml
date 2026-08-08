@@ -1,0 +1,86 @@
+# The gate that did not exist.
+#
+# Three defects reached PyPI — `twine` as a runtime dependency, `__version__`
+# stuck at 0.1.5 across four releases, and a sentencepiece range that permits a
+# version which cannot load the bundled model. The repository had exactly one
+# workflow, `release.yml`, which built and published on any `v*` tag with no test
+# run, no lint, and no Python matrix. Nothing could have caught any of them.
+#
+# This runs on every push and pull request, and `release.yml` now waits on it.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Called by release.yml so a tag cannot publish without this passing.
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The package claims 3.11+ and was never tested on any of them. The
+        # matrix is the point: a C-extension dependency like sentencepiece is
+        # exactly where per-version wheel availability breaks.
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - run: uv sync --all-extras
+      - name: lint
+        run: |
+          uv run ruff format --check .
+          uv run ruff check .
+      - name: types
+        run: uv run mypy
+      - name: tests
+        run: uv run pytest
+
+  # Separate job: it builds a wheel and inspects it, which is a different kind of
+  # failure from a logic bug and should be readable as such in the checks list.
+  artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv build --no-sources
+      - name: the model must be in the wheel
+        # It ships because uv_build includes the module directory by default, not
+        # because anything asked for it. This is the check that makes that
+        # dependency explicit rather than incidental.
+        run: |
+          python - <<'PY'
+          import sys, zipfile, glob
+          wheels = glob.glob("dist/*.whl")
+          assert wheels, "no wheel was produced"
+          with zipfile.ZipFile(wheels[0]) as z:
+              hits = [n for n in z.namelist() if n.endswith("mon_tokenizer.json")]
+              assert hits, f"model missing from wheel: {z.namelist()}"
+              size = z.getinfo(hits[0]).file_size
+              assert size > 4_000_000, f"artifact in wheel is {size} bytes, expected ~4.8MB"
+              cards = [n for n in z.namelist() if n.endswith("model_card.json")]
+              assert cards, "model_card.json must ship beside the artifact"
+          print(f"ok: {hits[0]} ({size:,} bytes)")
+          PY
+      - name: the wheel installs and loads its own model
+        # Installing from the built artifact into a clean environment is the only
+        # way to test what a user actually receives. `--no-project` keeps the
+        # source tree off sys.path so a missing data file cannot be masked by it.
+        run: |
+          uv run --isolated --no-project --with dist/*.whl python -c "
+          from mon_tokenizer import MonTokenizer
+          t = MonTokenizer()
+          assert t.get_vocab_size() == 64256, t.get_vocab_size()
+          r = t.encode('ဂွံအခေါင်အရာမွဲ')
+          assert t.decode_ids(r['ids']) == r['text']
+          print('ok:', t)
+          "
