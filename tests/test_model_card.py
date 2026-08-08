@@ -116,15 +116,44 @@ def test_the_card_records_the_corpus_it_was_trained_on(card: dict):
     assert set(corpus["by_bucket"]) == {"mon", "burmese", "english"}
 
 
-def test_the_card_says_the_whole_val_split_was_measured(card: dict):
+@pytest.mark.xfail(
+    strict=True,
+    reason="The shipped 1.0.0 card predates this fix: it was built by a driver that "
+    "computed coverage over val['mon'][:5000] while hardcoding \"whole split, no cap\". "
+    "scripts/train_tokenizer.py no longer caps and now derives the count, so the next "
+    "retrain produces a card that satisfies this. strict=True means the suite fails "
+    "when that happens, forcing this marker off rather than letting it linger.",
+)
+def test_the_whole_val_split_was_measured(card: dict):
     """Guards against a sampling cap creeping back in.
 
     An earlier driver measured `val[bucket][:5000]` in file order, which gave
     `dict/` 47.5% of the Mon sample while it is 8.1% of the split, and left
     `mon_shards/` — 47.2% of the split — contributing nothing.
+
+    This used to assert only that the string "no cap" appeared in the card. That
+    string was hardcoded next to a coverage call that still carried `[:5000]`, so
+    the test asserted a claim the code contradicted, and 1.0.0 shipped a coverage
+    figure measured over 5,000 lines while declaring the whole split. Assert the
+    count instead: a number the driver derives from what it actually read.
     """
     assert card["eval"]["split"] == "val"
     assert "no cap" in card["eval"]["sampling"]
+
+    measured = card["eval"].get("coverage_lines_measured")
+    assert measured is not None, (
+        "the card must record how many lines coverage actually read; a prose "
+        "claim with no number behind it is what allowed this to be wrong"
+    )
+    assert measured > 5_000, (
+        f"coverage measured {measured:,} lines. At exactly 5,000 the old cap is "
+        f"back; the Mon val split is far larger than that."
+    )
+    assert measured == card["metrics"]["mon"]["lines"], (
+        f"coverage read {measured:,} lines but the Mon val split is "
+        f"{card['metrics']['mon']['lines']:,}. Coverage must cover all of it, "
+        f"not a prefix."
+    )
 
 
 def test_byte_fallback_is_real_and_not_merely_declared(tokenizer: MonTokenizer, card: dict):

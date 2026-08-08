@@ -91,7 +91,14 @@ def evaluate(tokenizer, val: dict[str, list[str]]) -> dict:
             lines,
             fids,
         ).as_dict()
-    out["coverage"] = coverage(tokenizer.get_vocab().keys(), "".join(val.get("mon", [])[:5000]))
+    # No cap. This carried [:5000] while the module docstring above described
+    # removing exactly that head-of-file bias, and card["eval"]["sampling"] was
+    # hardcoded to "whole split, no cap" -- so the shipped 1.0.0 coverage figure
+    # was measured over the first 5,000 Mon val lines and published as though it
+    # covered the split. In file order that is not a random sample.
+    mon_val = val.get("mon", [])
+    out["coverage"] = coverage(tokenizer.get_vocab().keys(), "".join(mon_val))
+    out["coverage"]["lines_measured"] = len(mon_val)
     return out
 
 
@@ -186,7 +193,15 @@ def main() -> int:
     card = build_model_card(
         config, corpus, metrics, args.artifact_version, tokenizer.get_vocab_size()
     )
-    card["eval"] = {"split": "val", "sampling": "whole split, no cap"}
+    # Derived, not asserted. A hardcoded string here cannot be wrong in a way any
+    # test can catch, and it was wrong: it claimed the whole split while coverage
+    # read the first 5,000 lines.
+    measured = metrics.get("coverage", {}).get("lines_measured")
+    card["eval"] = {
+        "split": "val",
+        "sampling": "whole split, no cap",
+        "coverage_lines_measured": measured,
+    }
     (data_dir / "model_card.json").write_text(
         json.dumps(card, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
