@@ -32,7 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from mon_tokenizer.metrics import coverage, measure
+from mon_tokenizer.metrics import Encoder, coverage, measure
 from mon_tokenizer.normalization import hf_normalizer
 from mon_tokenizer.trainer import (
     BYTE_PIECES,
@@ -177,6 +177,30 @@ BUILDERS = {
 }
 
 
+def encoder(tokenizer) -> Encoder:
+    """`metrics.Encoder`: pieces and ids from **one** encode call.
+
+    This was inlined as `lambda t: (tk.encode(t).tokens, tk.encode(t).ids)`,
+    which encodes every line twice — the tokenizer does all the Viterbi work,
+    returns an `Encoding` carrying both lists, and the lambda threw one away and
+    ran it again. Four algorithms over the whole val split is 46,916 lines each,
+    so that was 375k encodes to measure 188k. The type has always said one call
+    returns the pair.
+
+    **Not a halving of the pass**, which is what it looks like and is worth
+    stating so nobody re-derives it: measured over the 29,600-line Mon val split
+    with the shipped artifact, 3.9s → 2.9s, about 27%. `measure` also decodes
+    every line, normalizes both sides and reconstructs offsets, so encoding is
+    roughly half of it and removing half of that is a quarter.
+    """
+
+    def encode(text: str) -> tuple[list[str], list[int]]:
+        encoded = tokenizer.encode(text)
+        return encoded.tokens, encoded.ids
+
+    return encode
+
+
 def fallback_ids(tokenizer) -> frozenset[int]:
     """Ids that mean "spelled out" — byte pieces plus unknown."""
     vocab = tokenizer.get_vocab()
@@ -213,18 +237,33 @@ def main() -> int:
             if not lines:
                 continue
             per_bucket[bucket] = measure(
-                lambda t, tk=tokenizer: (tk.encode(t).tokens, tk.encode(t).ids),
+                encoder(tokenizer),
                 lambda _pieces, ids, tk=tokenizer: tk.decode(ids),
                 lines,
                 fids,
             ).as_dict()
+
+        # No cap. This read `val.get("mon", [])[:2000]`, and 2,000 lines of the
+        # Mon val split hold 191 distinct characters where the whole split holds
+        # 397 — so every coverage figure this script ever printed was measured
+        # over less than half the character set it was reported against, and one
+        # of them reached `docs/architecture.md`. Same defect the main driver had
+        # at `[:5000]`, in the script nobody re-ran.
+        #
+        # `lines_measured` is counted from what was actually read rather than
+        # asserted in prose, for the same reason `train_tokenizer.write_card`
+        # derives it: a hardcoded claim about sampling cannot be wrong in a way
+        # any reader can catch, and that is exactly how it was wrong.
+        mon_val = val.get("mon", [])
+        cover = coverage(tokenizer.get_vocab().keys(), "".join(mon_val))
+        cover["lines_measured"] = len(mon_val)
 
         encoded = tokenizer.encode(probe)
         results[name] = {
             "vocab_size": tokenizer.get_vocab_size(),
             "train_seconds": round(elapsed, 1),
             "buckets": per_bucket,
-            "coverage": coverage(tokenizer.get_vocab().keys(), "".join(val.get("mon", [])[:2000])),
+            "coverage": cover,
             "probe_tokens": len(encoded.ids),
             "probe_roundtrip": tokenizer.decode(encoded.ids) == probe,
         }
@@ -253,7 +292,29 @@ def main() -> int:
         print(row)
     print("=" * 104)
     print(f"probe round-trip: {[(n, r['probe_roundtrip']) for n, r in results.items()]}")
-    print(f"mon syllable denominator: {results[args.only[0]]['buckets']['mon']['syllables']:,}")
+    # Not `results[args.only[0]]["buckets"]["mon"]["syllables"]`. That indexed
+    # three things it never checked: `--only` can be empty, `results` is empty
+    # with it, and the mon bucket is skipped entirely by the `if not lines`
+    # above when the corpus has no mon val lines — so a corpus without Mon in it
+    # ended a completed multi-hour comparison with a KeyError after the table had
+    # already printed, losing nothing but reading as a crash.
+    #
+    # Per algorithm rather than one number, because they can differ: `measure`
+    # excludes unreconstructable lines from the denominator as well as from the
+    # numerator, and which lines those are depends on the tokenizer.
+    denominators = {
+        name: r["buckets"]["mon"]["syllables"]
+        for name, r in results.items()
+        if "mon" in r["buckets"]
+    }
+    print(
+        "mon syllable denominator: "
+        + (
+            ", ".join(f"{name} {value:,}" for name, value in denominators.items())
+            if denominators
+            else "not measured — this val split has no mon lines"
+        )
+    )
     return 0
 
 

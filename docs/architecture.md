@@ -29,8 +29,16 @@ use case, not a claim that Unigram is better in general — the compression cost
 real and documented.
 
 **Byte-level BPE is out on evidence**: Myanmar is three UTF-8 bytes per character,
-so it starts three times behind and never recovers. 1.516 chars/token against
-4.620, and only 44.5% of characters single-token.
+so it starts three times behind and never recovers. 1.524 chars/token against
+4.620, and only 32.2% of characters single-token — 128 of 397, over all 29,600 Mon
+validation lines.
+
+That coverage figure read 44.5% until 2026-08-12, from the same capped sample that
+put 100% in the model card. `compare_algorithms.py` measured `mon[:2000]`, which
+sees 191 distinct characters instead of 397. Re-applying the cap to the current
+vocabulary reproduces 44.5% exactly, so the cap is the whole difference and the
+corpus change since that run does not confound it. The uncapped number is worse,
+which strengthens this section rather than weakening it.
 
 **WordPiece and byte-level BPE show "—" for violations, not 0%.** Their decoders
 were misconfigured in that run, so every line was unreconstructable and the
