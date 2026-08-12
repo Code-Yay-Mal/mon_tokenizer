@@ -93,7 +93,11 @@ BOOK_PUNCTUATION = "“”‘’—–…•·×°†‡§¶№½¼¾"
 class TrainConfig:
     """Everything that determines the artifact, recorded so a run is repeatable."""
 
-    vocab_size: int = 48_000
+    # The size the shipped artifact was trained at, and the same default
+    # `scripts/train_tokenizer.py` passes. It read 48,000 — a size nothing in the
+    # project uses — so `train(lines)` with no config quietly built a tokenizer
+    # 16,000 pieces smaller than the one this repository ships and measures.
+    vocab_size: int = 64_000
     special_tokens: list[str] = field(default_factory=lambda: list(SPECIAL_TOKENS))
     unk_token: str = "<unk>"
     byte_fallback: bool = True
@@ -141,7 +145,7 @@ def guaranteed_alphabet() -> list[str]:
     there.
 
     Deliberately not extended to Thai, emoji or CJK: they are real but rare
-    (0.027% and below), and 48,000 vocabulary slots are better spent on Mon.
+    (0.027% and below), and 64,000 vocabulary slots are better spent on Mon.
     Byte fallback carries them correctly, just not cheaply.
     """
     alphabet = set(string.printable) - set("\t\r\x0b\x0c")
