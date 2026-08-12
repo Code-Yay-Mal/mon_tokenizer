@@ -161,6 +161,6 @@ why grapheme clusters are the wrong unit for Myanmar, and what was rejected.
 
 - [Hugging Face](https://huggingface.co/janakhpon/mon_tokenizer)
 - [MonCorpusCollection](https://github.com/MonDevHub/MonCorpusCollection) — the corpus
-- [Awesome Mon NLP](https://github.com/janakhpon/awesome-mon-nlp) — the ecosystem
+- [Awesome Mon NLP](https://github.com/MonDevHub/awesome-mon-nlp) — the ecosystem
 
 MIT.
