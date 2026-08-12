@@ -33,9 +33,16 @@ cannot fail — it fixes the problem and reports success.
 uv run python scripts/preflight.py --hf ../hf_mon_tokenizer
 ```
 
-25 checks against the **built wheel and a clean install**, not the source tree. A
-check that passes because the repository happens to be on `sys.path` proves
-nothing about what a user receives.
+**30 checks** against the **built wheel and a clean install**, not the source
+tree — 19 of them without `--hf`, and eleven more comparing the Hugging Face
+repo's ids, artifact version and corpus digest against the package's. A check
+that passes because the repository happens to be on `sys.path` proves nothing
+about what a user receives.
+
+This said 25, which is the number of `check(...)` call sites in the file rather
+than the number of checks it reports: two of those sites run in a loop, once per
+gate command and once per required Hugging Face file. Count the output, not the
+source.
 
 It exits non-zero on any failure and prints `DO NOT PUBLISH`.
 

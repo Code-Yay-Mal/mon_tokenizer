@@ -225,7 +225,16 @@ def test_the_segmentation_of_a_known_string_is_pinned(tokenizer: MonTokenizer):
 def test_compression_does_not_regress(tokenizer: MonTokenizer, text: str, floor: float):
     """Characters per token, per language, with margin under the measured value.
 
-    Measured on the full val split: Mon 4.798, Burmese 4.106, English 4.112.
+    Measured on the full val split, and these are the figures in
+    `model_card.json`: Mon 4.686, Burmese 4.117, English 4.112, mixed 3.804.
+
+    This docstring said Mon 4.798 and Burmese 4.106 until now — the numbers from
+    before the percent-escape cleanup, which `docs/architecture.md` records as a
+    corpus change rather than a regression (`%E1%80%86%E1%80%` was one token
+    covering sixteen characters, so junk lines scored extremely well). A stale
+    number in a docstring is the same defect the model card exists to prevent,
+    one level down.
+
     These floors sit below those so single-sentence variation cannot flake, while
     a genuine regression drops far below them.
     """

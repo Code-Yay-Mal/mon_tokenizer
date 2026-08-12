@@ -49,7 +49,18 @@ from dataclasses import asdict, dataclass
 from .normalization import normalize_text
 from .syllable import syllable_spans
 
-__all__ = ["BucketMetrics", "coverage", "measure", "piece_boundaries", "syllable_violations"]
+__all__ = [
+    "BucketMetrics",
+    # The callable contract `measure` takes. Exported because callers implement
+    # it — `scripts/compare_algorithms.py` builds one per algorithm — and a type
+    # that describes a caller's obligation is part of the interface.
+    "Decoder",
+    "Encoder",
+    "coverage",
+    "measure",
+    "piece_boundaries",
+    "syllable_violations",
+]
 
 WORD_MARKER = "▁"
 
@@ -145,9 +156,12 @@ def measure(
 ) -> BucketMetrics:
     """Measure one stratum.
 
-    Callables rather than a tokenizer object, so a SentencePiece model and a
-    HuggingFace one can be compared without either backend leaking into the
-    metric — which is what makes a like-for-like baseline possible at all.
+    Callables rather than a tokenizer object, so two tokenizers can be compared
+    without either backend leaking into the metric. That is what made the v1
+    baseline like-for-like when v1 was still a SentencePiece `.model` — 1.0.0
+    ships `tokenizer.json` and depends on SentencePiece nowhere — and it is what
+    lets `scripts/compare_algorithms.py` score unigram, BPE, byte-level BPE and
+    WordPiece through this one function.
 
     `fallback_ids` is the set of byte-piece and unknown ids. Supplying it is the
     caller's job because only the caller knows the vocabulary; supplying nothing

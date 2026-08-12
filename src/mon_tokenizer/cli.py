@@ -84,11 +84,21 @@ else:
                     console.print(f"[red]error: --ids must be integers: {exc}[/red]")
                     raise SystemExit(1) from exc
                 console.print(tokenizer.decode_ids(parsed))
-            else:
-                # No .strip() on each piece: SentencePiece pieces carry a leading
-                # U+2581 word marker, and stripping would silently mutate any
-                # piece whose content is whitespace.
-                console.print(tokenizer.decode((tokens or "").split(",")))
+            elif tokens:
+                # No .strip() on each piece: pieces carry a leading U+2581 word
+                # marker from the `Metaspace` pre-tokenizer — 1.0.0 dropped
+                # SentencePiece, which is where that marker used to come from —
+                # and stripping would silently mutate any piece whose content is
+                # whitespace.
+                #
+                # `elif`, not `else`: the guard above exits 1 when --decode has
+                # neither option and when it has both, so exactly one of the two
+                # is truthy here. The previous form was
+                # `tokenizer.decode((tokens or "").split(","))`, defending against
+                # a None that cannot arrive — and `"".split(",")` is `[""]`, so
+                # had it ever arrived the fallback would have decoded one empty
+                # piece rather than saying anything.
+                console.print(tokenizer.decode(tokens.split(",")))
             return
 
         if text:
