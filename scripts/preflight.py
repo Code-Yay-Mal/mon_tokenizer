@@ -60,6 +60,24 @@ def run(command: list[str], cwd: Path = ROOT) -> tuple[int, str]:
     return p.returncode, (p.stdout + p.stderr)
 
 
+def last_line(out: str, fallback: str) -> str:
+    """The last non-blank line of `out`, truncated — or `fallback` if there is none.
+
+    This used to be `out.strip().splitlines()[-1][:90]` inline. `"".splitlines()`
+    is `[]`, so a gate command that failed while printing nothing raised
+    `IndexError` and took the whole preflight down with a traceback — no report,
+    no `DO NOT PUBLISH`, on the last stop before an irreversible publish. A tool
+    whose job is to refuse must not be able to crash instead of refusing.
+
+    Not hypothetical: `uv run mypy` exits 2 with empty stdout+stderr when it
+    cannot read its config, and a killed subprocess (OOM, SIGKILL) returns a
+    non-zero code with nothing captured. `fallback` carries the exit code so the
+    line still says something the reader can act on.
+    """
+    lines = [line for line in out.splitlines() if line.strip()]
+    return lines[-1].strip()[:90] if lines else fallback
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hf", type=Path, help="Hugging Face repo checkout to verify too")
@@ -73,7 +91,7 @@ def main() -> int:
         ("pytest", ["uv", "run", "pytest", "-q"]),
     ]:
         code, out = run(command)
-        check(name, code == 0, "" if code == 0 else out.strip().splitlines()[-1][:90])
+        check(name, code == 0, "" if code == 0 else last_line(out, f"exit {code}, no output"))
 
     # -- the artifact, built and inspected ---------------------------------
     with tempfile.TemporaryDirectory() as tmp:
