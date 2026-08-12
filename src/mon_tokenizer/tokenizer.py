@@ -45,8 +45,16 @@ characters are not flagged — they are silently deleted.
 
 Coverage is the other half: the training run guarantees printable ASCII, all
 three Myanmar ranges and common book punctuation are each a *single* token, so
-**100% of the characters in the Mon val split are single-token**. Rarer scripts
-still round-trip, at one to four tokens per character.
+**98.74% of the distinct characters in the Mon val split are single-token** —
+392 of 397 across all 29,600 lines. The five that are not are one combining
+diaeresis below, a Greek capital pi, two Sinhala letters and one emoji, seven
+occurrences in 2.28M characters. Those still round-trip, at one to four tokens
+per character; they are simply not cheap.
+
+That figure read 100% until 2026-08-12, because the driver measured the first
+5,000 Mon lines while its card declared the whole split. The head of that file is
+dictionary text and the rarer scripts arrive later, so the cap did not look like
+a cap — which is the argument for deriving the line count instead of asserting it.
 """
 
 from __future__ import annotations

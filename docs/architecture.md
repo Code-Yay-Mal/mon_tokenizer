@@ -150,19 +150,27 @@ segmentation to respect syllable edges. **Measured at 64k:**
 **Measured on the pre-cleanup corpus** (before URL and percent-encoded lines were
 filtered), so these figures are internally comparable but do not match §7's:
 
-| | violations | chars/token | character coverage | byte fallback | unreconstructable |
+| | violations | chars/token | character coverage† | byte fallback | unreconstructable |
 |---|---|---|---|---|---|
 | off | 1.10% | 4.798 | **100.0%** | **0.00%** | 4 |
 | on | 0.51% | 4.734 | 88.4% | 1.34% | 1,337 |
 
+† **Both coverage figures were measured over the first 5,000 Mon val lines**, not
+the split — the driver carried a `[:5000]` slice at the time. The comparison
+between the two rows is like-for-like and the decision below still stands on it,
+but neither absolute figure is a whole-split number. Re-measured without the cap,
+the shipped artifact scores **98.74%**, not 100.0%; the "on" row cannot be
+re-measured without retraining that variant, and it has not been.
+
 It halves violations for only −1.3% compression, and would have passed the
 written threshold. Rejected anyway, for three reasons the threshold missed:
 
-1. **Coverage falls to 88.4%** — 11.6% of Mon characters stop being single-token.
+1. **Coverage falls by 11.6 points** — that share of Mon characters stops being
+   single-token.
 2. **The improvement is not like-for-like.** Unreconstructable lines went 4 →
    1,337, and those are excluded from the denominator (492,469 → 427,690). The
    excluded lines are exactly the ones now falling back to bytes.
-3. 1.10% is already low, at full coverage and zero fallback.
+3. 1.10% is already low, at near-complete coverage and zero fallback.
 
 *Reverse this if:* a downstream measurement shows syllable violations cost real
 accuracy, and the coverage loss can be bought back another way.

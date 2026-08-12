@@ -116,14 +116,6 @@ def test_the_card_records_the_corpus_it_was_trained_on(card: dict):
     assert set(corpus["by_bucket"]) == {"mon", "burmese", "english"}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="The shipped 1.0.0 card predates this fix: it was built by a driver that "
-    "computed coverage over val['mon'][:5000] while hardcoding \"whole split, no cap\". "
-    "scripts/train_tokenizer.py no longer caps and now derives the count, so the next "
-    "retrain produces a card that satisfies this. strict=True means the suite fails "
-    "when that happens, forcing this marker off rather than letting it linger.",
-)
 def test_the_whole_val_split_was_measured(card: dict):
     """Guards against a sampling cap creeping back in.
 

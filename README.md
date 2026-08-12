@@ -55,7 +55,10 @@ characters · scored on the **whole** validation split.
 | English | 4.112 | — *(n=0)* | **100%** | 0.02% |
 | mixed script | 3.804 | 0.81% *(n=28,133)* | **100%** | 0.19% |
 
-100% of characters in the Mon validation split are single tokens.
+98.74% of the distinct characters in the Mon validation split are single tokens —
+392 of 397, over all 29,600 lines. The remaining five (a combining diaeresis
+below, a Greek capital pi, two Sinhala letters and one emoji; seven occurrences
+in 2.28M characters) round-trip through byte fallback at one to four tokens each.
 
 Compression describes a corpus, not a tokenizer — quote it with the corpus.
 Violations count token boundaries inside a Myanmar syllable; the denominator is

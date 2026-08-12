@@ -81,8 +81,9 @@
       "unreconstructable": 11
     },
     "coverage": {
-      "distinct": 199,
-      "single_token": 1.0
+      "distinct": 397,
+      "single_token": 0.9874,
+      "lines_measured": 29600
     }
   },
   "notes": {
@@ -93,6 +94,7 @@
   },
   "eval": {
     "split": "val",
-    "sampling": "whole split, no cap"
+    "sampling": "whole split, no cap",
+    "coverage_lines_measured": 29600
   }
 }

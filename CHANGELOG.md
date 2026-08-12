@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+**The artifact is unchanged.** `mon_tokenizer.json` still hashes to
+`34d181532eee7e6754bfbad693753ee4660bdda00eb36a2ccc7cd2f372c71282`, every token
+id is the same, and nothing was retrained. What changed is a number that
+described it wrongly.
+
+### Corrected
+
+- **Single-token coverage on the Mon val split is 98.74%, not 100%.** 1.0.0's
+  driver computed coverage over `val["mon"][:5000]` while the card it wrote
+  hardcoded `"sampling": "whole split, no cap"` — so the figure was measured on
+  17% of the split and published as though it covered all of it. Over all 29,600
+  lines the split holds 397 distinct characters, of which 392 are single tokens.
+  The five that are not — U+0324, U+03A0, U+0DBA, U+0DD2 and U+1F931, seven
+  occurrences in 2,280,192 characters — round-trip through byte fallback.
+
+  The 5,000-line slice really does score 100% over 199 distinct characters, which
+  is why nothing looked wrong: the head of the file is Mon dictionary text, and
+  the rarer scripts arrive later in the split.
+
+  Every other figure on the card re-measured **identically** against the shipped
+  artifact, so this correction is scoped to coverage alone.
+
+### Added
+
+- **`scripts/train_tokenizer.py --recard`** re-measures the shipped artifact and
+  rewrites only its card. Correcting a card used to require a retrain, which
+  changes every token id to fix a number that describes the existing ids
+  correctly. It refuses if the corpus on disk is not the one the card names.
+- **`tests/test_artifact_sync.py`** pins the artifact's sha256 and asserts the
+  Hugging Face copy is byte-identical when that checkout is present; CI now
+  fetches the Hub copy and compares. The identity of the two copies was checked
+  by hand, and the one time it was not, users got a 4,000-piece tokenizer against
+  a card advertising 32,000.
+
 ## [1.0.0] - 2026-08-08
 
 **Breaking: every token id has changed.** Rebuild any embedding matrix built
@@ -26,7 +62,9 @@ characters, scored on the whole validation split. Corpus digest
 | English | 4.112 | — (n=0) | 100% | 0.02% |
 | mixed script | 3.804 | 0.81% (n=28,133) | 100% | 0.19% |
 
-100% of characters in the Mon validation split are single tokens.
+98.74% of the distinct characters in the Mon validation split are single tokens —
+392 of 397, over all 29,600 lines. The other five round-trip through byte
+fallback.
 
 **Not comparable to any number published before 1.0.0.** Earlier figures were
 measured on a different eval sample; see "Corrections".
@@ -70,8 +108,10 @@ Recorded because the same mistakes are easy to repeat:
   like-for-like, 0.2.x's Mon compression is 3.019 not 2.765, and its round-trip
   87.1% not 93.8% — so a claimed +23.6% gain was really +13.2%.
 - **Head-of-file sampling was unrepresentative**: `dict/` was 47.5% of the Mon
-  sample but 8.1% of the split, and `mon_shards/` contributed nothing. All 1.0.0
-  numbers use the whole split.
+  sample but 8.1% of the split, and `mon_shards/` contributed nothing. Every
+  1.0.0 compression, round-trip, violation and fallback figure uses the whole
+  split. **Coverage did not** — that one shipped measured over the first 5,000
+  Mon lines; see Unreleased.
 - **The violation metric measured the wrong unit** — Unicode grapheme clusters
   break before `ာ`, so a cut through `ကျော်` scored clean.
 - **Byte-fallback rate was structurally zero**: it matched piece strings, but
