@@ -3,6 +3,7 @@
 
     uv run python scripts/train_tokenizer.py --gate      # compare variants, write nothing
     uv run python scripts/train_tokenizer.py --write     # train and ship
+    uv run python scripts/train_tokenizer.py --recard    # re-measure what is shipped
 
 Reads the JSONL produced by `export_corpus.py`. Fits on the **train** split and
 measures on the **whole val** split — never a head slice. An earlier version took
@@ -13,6 +14,14 @@ differently, so that number described a sample nobody had chosen deliberately.
 
 `--gate` exists because the syllable-atomicity filter is an open question, not a
 decision. It trains both variants, prints both, and writes nothing.
+
+`--recard` exists because a card can be wrong about an artifact that is right.
+1.0.0 shipped a coverage figure measured over `val["mon"][:5000]` while the same
+card declared "whole split, no cap", and the only way to correct it used to be a
+retrain — which changes every token id to fix a number that describes the
+existing ids perfectly well. This re-runs `evaluate()` against the **shipped**
+`mon_tokenizer.json` and rewrites only the card. It never calls `train`, and it
+refuses if the corpus on disk is not the one the card was built from.
 """
 
 from __future__ import annotations
@@ -120,6 +129,87 @@ def show(name: str, metrics: dict) -> None:
     print(f"  single-token character coverage: {metrics['coverage']['single_token']:.1%}")
 
 
+def _card_paths() -> tuple[Path, Path]:
+    data_dir = ROOT / "src/mon_tokenizer/data"
+    return data_dir / "mon_tokenizer.json", data_dir / "model_card.json"
+
+
+def write_card(card_path: Path, card: dict, metrics: dict) -> None:
+    """Serialize a card, with the eval block derived rather than asserted.
+
+    A hardcoded sampling string here cannot be wrong in a way any test can catch,
+    and it was wrong: it claimed the whole split while coverage read the first
+    5,000 lines. `coverage_lines_measured` is the number the driver counted from
+    what it actually read, so the claim and the measurement cannot drift apart.
+    """
+    card["eval"] = {
+        "split": "val",
+        "sampling": "whole split, no cap",
+        "coverage_lines_measured": metrics.get("coverage", {}).get("lines_measured"),
+    }
+    card_path.write_text(json.dumps(card, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def recard(val: dict[str, list[str]], meta: dict) -> int:
+    """Re-measure the shipped artifact and rewrite its card. Trains nothing.
+
+    The artifact is opened read-only and never re-saved: a retrain to correct a
+    card would change every token id, invalidate every downstream embedding table
+    and force a Hub republish, all to fix a number that describes the ids already
+    published. The measurement code path is `evaluate()` — the same one `--write`
+    uses — so a card produced here and one produced by a retrain of the same
+    corpus differ only where the artifact does.
+    """
+    from tokenizers import Tokenizer
+
+    artifact, card_path = _card_paths()
+    for path in (artifact, card_path):
+        if not path.exists():
+            print(f"{path} not found — nothing to re-measure", file=sys.stderr)
+            return 1
+
+    previous = json.loads(card_path.read_text(encoding="utf-8"))
+    # The guard that makes this safe. Re-measuring against a corpus the artifact
+    # was not trained on would silently republish another dataset's numbers under
+    # this artifact's name, which is a worse defect than the one being fixed.
+    if previous["corpus"]["source_digest"] != meta["source_digest"]:
+        print(
+            f"corpus digest {meta['source_digest']} does not match the card's "
+            f"{previous['corpus']['source_digest']}. This corpus did not train this "
+            f"artifact; re-measuring against it would publish numbers from another "
+            f"dataset. Retrain with --write instead.",
+            file=sys.stderr,
+        )
+        return 1
+
+    tokenizer = Tokenizer.from_file(str(artifact))
+    if tokenizer.get_vocab_size() != previous["vocab_size"]:
+        print(
+            f"artifact has {tokenizer.get_vocab_size():,} pieces but the card records "
+            f"{previous['vocab_size']:,} — the two are already out of sync",
+            file=sys.stderr,
+        )
+        return 1
+
+    metrics = evaluate(tokenizer, val)
+    show(f"shipped artifact {previous['artifact_version']} re-measured", metrics)
+    card = build_model_card(
+        TrainConfig(**previous["config"]),
+        CorpusStats(
+            lines=meta["lines"],
+            chars=meta["chars"],
+            by_bucket={b: sum(s.values()) for b, s in meta["by_bucket_split"].items()},
+            source_digest=meta["source_digest"],
+        ),
+        metrics,
+        previous["artifact_version"],
+        tokenizer.get_vocab_size(),
+    )
+    write_card(card_path, card, metrics)
+    print(f"\nwrote {card_path} (artifact untouched)")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, default=ROOT / "build/corpus.jsonl")
@@ -127,6 +217,11 @@ def main() -> int:
     parser.add_argument("--gate", action="store_true", help="compare variants, write nothing")
     parser.add_argument("--atomicity", action="store_true")
     parser.add_argument("--write", action="store_true")
+    parser.add_argument(
+        "--recard",
+        action="store_true",
+        help="re-measure the shipped artifact and rewrite its card; trains nothing",
+    )
     # Names the trained artifact, not the package — see build_model_card. No
     # default: a retrain that silently reuses the previous artifact's version
     # publishes two different tokenizers under one name, which is the shape of
@@ -151,6 +246,10 @@ def main() -> int:
         sum(map(len, train_lines)),
         {b: len(val.get(b, [])) for b in BUCKETS},
     )
+
+    # Before any training happens: --recard's whole point is that it does none.
+    if args.recard:
+        return recard(val, meta)
 
     variants = [False, True] if args.gate else [args.atomicity]
     results = []
@@ -179,9 +278,8 @@ def main() -> int:
         return 1
 
     tokenizer, config, metrics = results[0]
-    data_dir = ROOT / "src/mon_tokenizer/data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    artifact = data_dir / "mon_tokenizer.json"
+    artifact, card_path = _card_paths()
+    artifact.parent.mkdir(parents=True, exist_ok=True)
     tokenizer.save(str(artifact))
 
     corpus = CorpusStats(
@@ -193,20 +291,9 @@ def main() -> int:
     card = build_model_card(
         config, corpus, metrics, args.artifact_version, tokenizer.get_vocab_size()
     )
-    # Derived, not asserted. A hardcoded string here cannot be wrong in a way any
-    # test can catch, and it was wrong: it claimed the whole split while coverage
-    # read the first 5,000 lines.
-    measured = metrics.get("coverage", {}).get("lines_measured")
-    card["eval"] = {
-        "split": "val",
-        "sampling": "whole split, no cap",
-        "coverage_lines_measured": measured,
-    }
-    (data_dir / "model_card.json").write_text(
-        json.dumps(card, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    write_card(card_path, card, metrics)
     print(f"\nwrote {artifact} ({artifact.stat().st_size / 1e6:.1f}MB)")
-    print(f"wrote {data_dir / 'model_card.json'}")
+    print(f"wrote {card_path}")
     return 0
 
 
