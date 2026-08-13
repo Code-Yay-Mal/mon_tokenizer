@@ -4,11 +4,19 @@ Forward work for this repository. Findings live in
 [AUDIT-2026-08-08.md](AUDIT-2026-08-08.md) and
 [AUDIT-2026-08-08-hf-artifact.md](AUDIT-2026-08-08-hf-artifact.md).
 
-**Re-verified 2026-08-09:** `107 passed, 3 xfailed in 6.22s` · version, tag and
-changelog all agree at `1.0.0` · CI tracked, matrix on 3.11/3.12/3.13, **six
-action references pinned to 40-character commit SHAs** · H1's round-trip claim is
-qualified in the README immediately below the table and its two limits are
-xfail-tested.
+**Re-verified 2026-08-13** with `uv run pytest`: `141 passed, 2 xfailed in 4.88s`
+· version, tag and changelog all agree at `1.0.0` · CI tracked, matrix on
+3.11/3.12/3.13, **seven action references pinned to 40-character commit SHAs**
+across `ci.yml` and `release.yml` — the eighth `uses:` is `release.yml`'s call
+into `./.github/workflows/ci.yml`, a local path with no SHA to pin · H1's
+round-trip claim is qualified in the README immediately below the table and its
+two limits are xfail-tested.
+
+The line above read `107 passed, 3 xfailed` under a 2026-08-09 date until today.
+The suite has grown by 34 tests since and carries two `xfail` markers, both in
+`tests/test_tokenizer.py`, matching the two documented round-trip limits. Nothing
+regressed. Dates on this line are the day the command was run, not the day the
+file was edited.
 
 Every finding in both audits is closed. This file is therefore not a repair list —
 it is what a shipping package does next, and the honest answer is *less than you
@@ -63,10 +71,15 @@ Also verified 2026-08-09: `tokenizer.json` on the Hugging Face repo is
 and every metric in the HF card matches `model_card.json`. So the disagreement is
 not two artifacts; it is one artifact measured against two corpora.
 
-**Fix, and it is small:** have `mon_OCR` cite this repo's figure rather than
-restating one, or state the split it used beside its own. The canonical home for
-a tokenizer measurement is the tokenizer, and this one already ships its
-denominator machine-readably.
+**The fix has landed on both sides**, so nothing here is outstanding. Verified
+2026-08-13: `mon_OCR/docs/adr/0014-vlm-line-recognition-pipeline.md:44` carries
+4.686 with `2,280,192 / 486,631` in the row beside it.
+
+What it taught: a figure quoted without its denominator cannot be reconciled,
+only re-measured. Correcting 4.798 to 4.686 was the smaller half — the half that
+holds is that both tables now carry the denominator, so the next disagreement
+resolves itself. The canonical home for a tokenizer measurement is the tokenizer,
+and this one ships its denominator machine-readably.
 
 ---
 
