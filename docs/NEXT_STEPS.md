@@ -37,9 +37,11 @@ originals live and the drift is a repeated finding elsewhere.
 ## 1. The chars/token disagreement, and which side carries the denominator
 
 `README.md:53` reports **4.686** chars/token on Mon.
-`mon_OCR/docs/adr/0014-vlm-line-recognition-pipeline.md` quotes **4.798** for the
+`mon_OCR/docs/adr/0014-vlm-line-recognition-pipeline.md` quoted **4.798** for the
 same tokenizer, also naming version 1.0.0 and also calling it the val split, and
-builds an accepted architectural decision on it.
+built an accepted architectural decision on it. **Closed 2026-08-13:** that ADR
+now carries 4.686 with the denominator below, and its table gained `lines` and
+`chars / tokens` columns.
 
 **This repository's figure is the one that can be checked.** `model_card.json`
 carries the full basis, verified 2026-08-09:
@@ -49,8 +51,9 @@ mon: lines 29,600 · chars 2,280,192 · tokens 486,631
      2,280,192 / 486,631 = 4.686
 ```
 
-ADR-0014 states no denominator, so its 4.798 cannot be reproduced from what is
-written down. The most likely explanation is that the two "val splits" are
+ADR-0014 stated no denominator, so its 4.798 could not be reproduced from what
+was written down. That is what the fix changed: the denominator is now in the
+table, not the prose. The most likely explanation is that the two "val splits" are
 different corpora — `mon_OCR` partitions by a blake2b hash of each line and this
 repository has its own split — in which case both numbers are correct and neither
 is labelled well enough to say so.
