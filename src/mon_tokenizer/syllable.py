@@ -27,9 +27,16 @@ next syllable. That last clause is what makes `ဒုင်စသိုင်` t
 than five.
 
 The character classes are **derived from `unicodedata.category` over the Myanmar
-ranges**, not typed out by hand. Hand-typed ranges for this script are how the
-Mon-exclusive set `ဨဳဴဵၚၛၜၝၞၟၠ` came to be described as letters when
-U+105E, U+105F and U+1060 are medial *signs* — `ၝၞၟၠ` is one syllable, not four.
+ranges**, not typed out by hand. Hand-typed ranges for this script are how
+`ၞ ၟ ၠ` (U+105E–U+1060) came to be described as letters when they are medial
+*signs* — `ၝၞၟၠ` is one syllable, not four.
+
+Which characters are Mon-exclusive is not this module's business. That sentence
+used to enumerate them, eleven codepoints, which is the *attested* set — the ten
+whose Unicode name carries MON as a word, plus U+1035 on corpus evidence
+measured in a sibling repository and not in this one. Stating it took a side in
+a disagreement segmentation does not depend on: what decides a boundary is each
+codepoint's category, which `unicodedata` already knows.
 
 ## Validation, and a caution about fixtures
 
