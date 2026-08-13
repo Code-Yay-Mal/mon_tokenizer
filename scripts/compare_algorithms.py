@@ -214,6 +214,11 @@ def fallback_ids(tokenizer) -> frozenset[int]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, default=ROOT / "build/corpus.jsonl")
+    # 48,000, not the shipped 64,000, and deliberately so. This script answers
+    # "which algorithm", which needs every candidate at one vocabulary size;
+    # 48k is the size architecture.md §1 reports and is midway through the §2
+    # sweep. `TrainConfig.vocab_size` is the one that must track the artifact,
+    # and it is 64,000.
     parser.add_argument("--vocab-size", type=int, default=48_000)
     parser.add_argument("--only", nargs="*", choices=list(BUILDERS), default=list(BUILDERS))
     parser.add_argument("--output", type=Path, default=ROOT / "build/algorithms.json")

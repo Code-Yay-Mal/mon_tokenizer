@@ -90,10 +90,11 @@ measured on a different eval sample; see "Corrections".
 ### Changed
 
 - **Unigram kept, now on evidence rather than assertion.** BPE was measured and
-  compresses better in every bucket (+6.8% Mon, +25.6% English, 9x faster) but
+  compresses better in every bucket (+6.2% Mon, +25.8% English, 10x faster) but
   splits Myanmar syllables 2.5x more often. Byte-level BPE was rejected on
-  measurement: Myanmar is three UTF-8 bytes per character, giving 1.516
-  chars/token against 4.620.
+  measurement: Myanmar is three UTF-8 bytes per character, giving 1.524
+  chars/token against 4.507, both at 48,000 pieces over the 29,600-line Mon
+  validation split.
 - **Vocabulary 32,000 → 64,000** — the measured knee, where violations flatten.
 - **`min_mon_ratio=0.3` removed from training.** It excluded Burmese- and
   English-dominant lines from the fit.

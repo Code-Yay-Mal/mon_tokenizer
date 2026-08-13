@@ -12,16 +12,20 @@ it.
 
 **Measured**, at 48k on the full val split, same harness:
 
-| | Mon | Burmese | English | mixed | syllable violations | train |
-|---|---|---|---|---|---|---|
-| **unigram** | 4.620 | 3.842 | 4.088 | 3.693 | **1.24%** | 138s |
-| bpe | **4.932** | **4.047** | **5.136** | **4.156** | 3.08% | 15s |
-| byte-level bpe | 1.516 | 1.545 | 4.964 | 2.150 | — | 7s |
-| wordpiece | 4.937 | 3.981 | 5.131 | 4.128 | — | 15s |
+| | Mon | Burmese | English | mixed | syllable violations | single-token | train |
+|---|---|---|---|---|---|---|---|
+| **unigram** | 4.507 | 3.901 | 4.089 | 3.706 | **1.21%** | 98.7% | 136s |
+| bpe | **4.787** | **4.104** | **5.146** | **4.165** | 3.08% | 98.7% | 14s |
+| byte-level bpe | 1.524 | 1.547 | 4.966 | 2.150 | — | **32.2%** | 6s |
+| wordpiece | 4.745 | 4.033 | 5.141 | 4.136 | — | 98.7% | 13s |
 
-**BPE compresses better in every bucket** — +6.8% Mon, +25.6% English — and trains
-nine times faster. Unigram wins on one thing: it splits Myanmar syllables 2.5×
-less often, over a denominator of 489,745 syllables.
+All four trained at 48,000 pieces and scored on the same 29,600-line Mon
+validation split. Reproduce with `uv run python scripts/compare_algorithms.py`,
+which writes `build/algorithms.json`; every cell above is one field of it.
+
+**BPE compresses better in every bucket** — +6.2% Mon, +25.8% English — and trains
+ten times faster. Unigram wins on one thing: it splits Myanmar syllables 2.5×
+less often, over a denominator of 492,469 syllables.
 
 Unigram is chosen because the downstream consumer is OCR and a VLM reading scanned
 pages, where the syllable is the unit a reader sees. That is a judgement about the
@@ -30,15 +34,20 @@ real and documented.
 
 **Byte-level BPE is out on evidence**: Myanmar is three UTF-8 bytes per character,
 so it starts three times behind and never recovers. 1.524 chars/token against
-4.620, and only 32.2% of characters single-token — 128 of 397, over all 29,600 Mon
-validation lines.
+unigram's 4.507, and only 32.2% of characters single-token — 128 of 397.
 
-That coverage figure read 44.5% until 2026-08-12, from the same capped sample that
-put 100% in the model card. `compare_algorithms.py` measured `mon[:2000]`, which
-sees 191 distinct characters instead of 397. Re-applying the cap to the current
-vocabulary reproduces 44.5% exactly, so the cap is the whole difference and the
-corpus change since that run does not confound it. The uncapped number is worse,
-which strengthens this section rather than weakening it.
+The coverage column read 44.5% for byte-level BPE, and 100.0% for the other three,
+until 2026-08-12. `compare_algorithms.py:227` measured
+`coverage(vocab, "".join(val["mon"][:2000]))` — 2,000 lines see 191 distinct
+characters where the split has 397 — while `measure()` on the same line was never
+capped. So the compression columns were always whole-split and only the coverage
+column was short. That is the same defect that put 100% in the model card, in a
+second place.
+
+The table above is a fresh run of the corrected script, so its compression figures
+move too: the previous table was measured on a 29,317-line split before a corpus
+cleanup, and this one on the current 29,600. Both halves of every row now come
+from one artifact.
 
 **WordPiece and byte-level BPE show "—" for violations, not 0%.** Their decoders
 were misconfigured in that run, so every line was unreconstructable and the
@@ -56,10 +65,13 @@ that second thing — the claim that atomicity matters is inherited, not tested.
 
 | vocab | Mon | Burmese | violations | per-1000-slot gain |
 |---|---|---|---|---|
-| 32k | 4.345 | 3.512 | 1.73% | — |
-| 48k | 4.620 | 3.842 | 1.24% | 0.0172 |
-| **64k** | **4.805** | **4.063** | **1.09%** | 0.0116 |
-| 96k | 5.053 | 4.336 | 1.07% | 0.0078 |
+| 32k | 4.240 | 3.569 | 1.71% | — |
+| 48k | 4.507 | 3.901 | 1.21% | 0.0167 |
+| **64k** | **4.686** | **4.117** | **1.07%** | 0.0112 |
+| 96k | 4.924 | 4.396 | 1.07% | 0.0074 |
+
+The 64k row is the shipped artifact's own Mon and Burmese figures, reached by an
+independent training run rather than copied from the card.
 
 Compression never plateaus, but its efficiency per slot halves across the range.
 Violations *do* plateau — flat after 64k. 64k is that knee.
@@ -315,8 +327,8 @@ Unigram?" is a fair question, and standalone numbers do not answer it.
 
 Inventory overlap between the two: 2,575 of 4,000 pieces.
 
-**BPE-derived pieces graft 6.6% better**, which tracks §1's standalone +6.8% Mon
-almost exactly. The compression edge survives the graft; it is not an artefact of
+**BPE-derived pieces graft 6.6% better**, which tracks §1's standalone +6.2% Mon
+closely. The compression edge survives the graft; it is not an artefact of
 running Unigram inference.
 
 ### The part that matters more than the 6.6%
@@ -339,7 +351,7 @@ was entirely this bug. Filtering to Myanmar script fixed it and improved Mon fro
 
 Because the graft is not the only consumer. mon_OCR and any standalone use run
 *this* tokenizer's own inference, and that is where §1's real difference lives:
-**1.24% syllable violations against BPE's 3.08%**, 2.5× fewer over 489,745
+**1.21% syllable violations against BPE's 3.08%**, 2.5× fewer over 492,469
 syllables.
 
 Switching to BPE would trade a 2.5× regression in syllable integrity — the
