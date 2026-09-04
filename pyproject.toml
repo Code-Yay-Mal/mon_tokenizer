@@ -1,6 +1,6 @@
 [project]
 name = "mon-tokenizer"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Unigram tokenizer for Mon (mnw), Burmese and English, with full byte fallback"
 readme = "README.md"
 requires-python = ">=3.11"

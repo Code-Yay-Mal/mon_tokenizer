@@ -5,12 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2026-09-03
 
 **The artifact is unchanged.** `mon_tokenizer.json` still hashes to
 `34d181532eee7e6754bfbad693753ee4660bdda00eb36a2ccc7cd2f372c71282`, every token
 id is the same, and nothing was retrained. What changed is a number that
 described it wrongly.
+
+### Changed
+
+- **The README carries one badge instead of seven.** PyPI already prints the
+  version, the Python requirement and the licence in its own header and sidebar,
+  so those badges repeated the page they sat on; the ruff and uv badges described
+  this repository's tooling rather than anything a caller needs. The licence badge
+  was also broken on the card, linking to a relative `LICENSE` path that resolves
+  on GitHub and nowhere on pypi.org. The Hugging Face URL is unchanged and still
+  listed under Links.
 
 ### Corrected
 
