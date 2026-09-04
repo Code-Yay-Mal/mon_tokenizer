@@ -7,12 +7,24 @@
 # run, no lint, and no Python matrix. Nothing could have caught any of them.
 #
 # This runs on every push and pull request, and `release.yml` now waits on it.
-
+#
+# THAT SENTENCE WAS NOT TRUE UNTIL 2026-09-04. `push` carried `branches: [main]`,
+# so a branch got CI only while a pull request happened to be open on it, and the
+# comment above stated the intent the trigger did not implement.
+#
+# It is not hypothetical. The sibling mon-language-detector lost three commits to
+# exactly this: a pull request closed at an earlier commit, and every push after
+# it matched no trigger, including the fix that made that repository's test matrix
+# correct. The most recent run on the branch was three commits stale and green,
+# which reads as tested. monocr-onnx removed the same filter earlier for the same
+# reason.
+#
+# The cost, stated rather than implied: a branch with an open pull request now
+# runs twice, once per event.
 name: ci
 
 on:
   push:
-    branches: [main]
   pull_request:
   # Called by release.yml so a tag cannot publish without this passing.
   workflow_call:
