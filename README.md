@@ -1,18 +1,6 @@
 # Mon Tokenizer
 
-<p align="center">
-  <a href="https://pypi.org/project/mon-tokenizer/"><img src="https://img.shields.io/pypi/v/mon-tokenizer" alt="PyPI"></a>
-  <a href="https://pypi.org/project/mon-tokenizer/"><img src="https://img.shields.io/pypi/pyversions/mon-tokenizer" alt="Python versions"></a>
-  <a href="https://huggingface.co/janakhpon/mon_tokenizer"><img src="https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow" alt="Hugging Face"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
-  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/badge/code%20style-ruff-000000.svg" alt="Ruff"></a>
-  <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/package%20manager-uv-purple" alt="uv"></a>
-  <img src="https://img.shields.io/badge/language-Mon%20(mnw)-orange" alt="Mon language">
-</p>
-
-<p align="center">
-  <strong>Unigram tokenizer for Mon (mnw), Burmese and English, with full byte fallback</strong>
-</p>
+[![PyPI](https://img.shields.io/pypi/v/mon-tokenizer.svg)](https://pypi.org/project/mon-tokenizer/)
 
 Mon mixes with Burmese constantly and English routinely, so all three are trained
 on and measured separately. Anything else on the page (Thai, emoji, IPA, CJK)
