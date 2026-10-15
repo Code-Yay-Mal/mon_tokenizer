@@ -10,8 +10,8 @@ authors = [
 # No `license` expression, and that is the decision rather than an omission —
 # the same one mon-language-detector made for its bundled model.
 #
-# The MIT grant in LICENSE covers what this project authored. The wheel also
-# ships src/mon_tokenizer/data/mon_tokenizer.json, a Unigram vocabulary fitted to
+# The MIT grant in LICENSE covers everything in the repository except
+# src/mon_tokenizer/data/mon_tokenizer.json, a Unigram vocabulary fitted to
 # a corpus this project neither collected nor owns: Mon Wikipedia is CC BY-SA 4.0
 # and the Independent Mon News Agency archive has no established licence. A single
 # `license = "MIT"` would assert one permissive grant over that artifact too.

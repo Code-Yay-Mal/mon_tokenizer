@@ -8,8 +8,8 @@ The same bytes are published on Hugging Face as
 [`janakhpon/mon_tokenizer`](https://huggingface.co/janakhpon/mon_tokenizer)
 `tokenizer.json`, and that repository's `LICENSE` says the same as this file.
 
-The code is separate. `LICENSE` is an MIT grant scoped to what this project
-authored, and it does not reach this file.
+The code is separate. `LICENSE` is an MIT grant over everything in the
+repository except this file.
 
 `mon_tokenizer.json` is a Unigram vocabulary fitted to a corpus this project neither
 collected nor owns. A fitted vocabulary is a derived work of the text it was

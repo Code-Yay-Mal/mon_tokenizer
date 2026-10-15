@@ -156,5 +156,7 @@ why grapheme clusters are the wrong unit for Myanmar, and what was rejected.
 MIT for the code. The bundled `mon_tokenizer.json` is a vocabulary fitted to a
 corpus with mixed and partly unresolved terms, and MIT does not reach it.
 [LICENSE-ARTIFACT.md](https://github.com/Code-Yay-Mal/mon_tokenizer/blob/main/LICENSE-ARTIFACT.md)
-states which sources are established and which are not; read it before
-redistributing the artifact.
+names the two sources that decide its terms for most consumers, and
+MonCorpusCollection's
+[LICENSE-CORPUS.md](https://github.com/MonDevHub/MonCorpusCollection/blob/main/LICENSE-CORPUS.md)
+lists every source; read both before redistributing the artifact.

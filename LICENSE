@@ -1,22 +1,16 @@
 SCOPE — READ THIS FIRST
 
-This MIT grant covers what this project authored in this repository:
-
-    src/mon_tokenizer/*.py
-    src/mon_tokenizer/data/model_card.json
-    tests/*.py
-    scripts/*.py
-
-It does NOT cover the trained artifact shipped inside the package at
+This MIT grant covers everything in this repository except one file, the
+trained artifact shipped inside the package at
 
     src/mon_tokenizer/data/mon_tokenizer.json
+
+which LICENSE-ARTIFACT.md covers instead.
 
 That file is a Unigram vocabulary fitted to a corpus this project neither
 collected nor owns. A fitted vocabulary is a derived work of the text it was
 fitted to, so its terms follow the training data — and that data has no single
 set of terms.
-
-For the artifact, see LICENSE-ARTIFACT.md.
 
 -------------------------------------------------------------------------------
 

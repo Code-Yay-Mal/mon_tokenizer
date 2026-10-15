@@ -18,7 +18,7 @@ is the licence the package declared over it.
   `mon_tokenizer.json` — the same file the Hugging Face repository's `LICENSE`
   says it grants no rights over, because its training data includes CC BY-SA 4.0
   text and sources with no established licence. `LICENSE` now scopes the MIT
-  grant to what this project authored, `LICENSE-ARTIFACT.md` states the
+  grant to everything except that file, `LICENSE-ARTIFACT.md` states the
   artifact's terms, and `license-files` ships both in the wheel and the sdist.
   This follows mon-language-detector 0.2.3.
 - **README links to `docs/` are absolute**, so they resolve on PyPI as well as
