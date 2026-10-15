@@ -137,11 +137,11 @@ uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pyt
 ```
 
 Retraining, releasing and the house rules for tests:
-[docs/how_to_contribute.md](docs/how_to_contribute.md).
+[docs/how_to_contribute.md](https://github.com/Code-Yay-Mal/mon_tokenizer/blob/main/docs/how_to_contribute.md).
 
 ## Design
 
-[docs/architecture.md](docs/architecture.md) — every decision with the measurement
+[docs/architecture.md](https://github.com/Code-Yay-Mal/mon_tokenizer/blob/main/docs/architecture.md) — every decision with the measurement
 behind it and the condition that would reverse it: algorithm, vocabulary size,
 why grapheme clusters are the wrong unit for Myanmar, and what was rejected.
 
@@ -151,4 +151,10 @@ why grapheme clusters are the wrong unit for Myanmar, and what was rejected.
 - [MonCorpusCollection](https://github.com/MonDevHub/MonCorpusCollection) — the corpus
 - [Awesome Mon NLP](https://github.com/MonDevHub/awesome-mon-nlp) — the ecosystem
 
-MIT.
+## Licence
+
+MIT for the code. The bundled `mon_tokenizer.json` is a vocabulary fitted to a
+corpus with mixed and partly unresolved terms, and MIT does not reach it.
+[LICENSE-ARTIFACT.md](https://github.com/Code-Yay-Mal/mon_tokenizer/blob/main/LICENSE-ARTIFACT.md)
+states which sources are established and which are not; read it before
+redistributing the artifact.

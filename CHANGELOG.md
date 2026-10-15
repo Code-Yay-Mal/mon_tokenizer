@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-10-15
+
+**The artifact is unchanged.** `mon_tokenizer.json` still hashes to
+`34d181532eee7e6754bfbad693753ee4660bdda00eb36a2ccc7cd2f372c71282`. What changed
+is the licence the package declared over it.
+
+### Corrected
+
+- **The distribution no longer declares `license = "MIT"`.** That expression
+  claimed one permissive grant over the whole wheel, including
+  `mon_tokenizer.json` — the same file the Hugging Face repository's `LICENSE`
+  says it grants no rights over, because its training data includes CC BY-SA 4.0
+  text and sources with no established licence. `LICENSE` now scopes the MIT
+  grant to what this project authored, `LICENSE-ARTIFACT.md` states the
+  artifact's terms, and `license-files` ships both in the wheel and the sdist.
+  This follows mon-language-detector 0.2.3.
+- **README links to `docs/` are absolute**, so they resolve on PyPI as well as
+  GitHub.
+- **The dependency comment in `pyproject.toml` says two**, matching the two it
+  sits above.
+
 ## [1.0.1] - 2026-09-03
 
 **The artifact is unchanged.** `mon_tokenizer.json` still hashes to
