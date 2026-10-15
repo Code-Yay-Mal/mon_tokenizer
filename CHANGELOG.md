@@ -165,7 +165,7 @@ superseded by the 1.0.0 retrain before they shipped. There is no 0.2.4 on PyPI;
 
 - Sync the 32k model with the refined 41.4M-character corpus (`v0.2.3` tag).
 
-## [0.2.0] - 2026-04-26
+## [0.2.0] - 2026-04-26 (not published to PyPI)
 
 ### Added
 - Major model upgrade: Vocabulary size expanded from 4,000 to 32,000.
