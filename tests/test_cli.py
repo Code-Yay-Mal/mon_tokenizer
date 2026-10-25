@@ -13,13 +13,19 @@ from typing import TYPE_CHECKING, cast
 
 import pytest
 
-pytest.importorskip("click", reason="the cli extra is not installed")
+from mon_tokenizer.cli import _CLI_DEPS, main
+
+# Skip on the condition cli.py itself branches on, not on `click` alone. Click
+# arrives without the extra -- huggingface-hub 1.x depends on it -- so a bare
+# `uv sync` had click but not rich, `main` was the stand-in function, and all
+# eight tests died in CliRunner with "'function' object has no attribute 'name'".
+if not _CLI_DEPS:
+    pytest.skip("the cli extra is not installed", allow_module_level=True)
+
 from click.testing import CliRunner
 
 if TYPE_CHECKING:
     import click
-
-from mon_tokenizer.cli import main
 
 MON = "ဂွံအခေါင်အရာမွဲသ္ဂောံဒုင်စသိုင်ကၠာကၠာရ။"
 
@@ -31,7 +37,7 @@ def run():
     `main` is defined twice in cli.py -- once as a plain function that explains
     how to install the `cli` extra, once as the click Command when the extra is
     present. mypy resolves the union to the plain form, so the cast names which
-    branch these tests run against. The importorskip above guarantees it.
+    branch these tests run against. The module-level skip above guarantees it.
     """
     runner = CliRunner()
     command = cast("click.Command", main)

@@ -1,14 +1,24 @@
 [project]
 name = "mon-tokenizer"
-version = "1.0.1"
+version = "1.0.2"
 description = "A Unigram tokenizer for Mon (mnw), Burmese and English, with full byte fallback"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
     { name = "Code-Yay-Mal", email = "jnovaxer@gmail.com" }
 ]
-license = "MIT"
-license-files = ["LICENSE"]
+# No `license` expression, and that is the decision rather than an omission —
+# the same one mon-language-detector made for its bundled model.
+#
+# The MIT grant in LICENSE covers everything in the repository except
+# src/mon_tokenizer/data/mon_tokenizer.json, a Unigram vocabulary fitted to
+# a corpus this project neither collected nor owns: Mon Wikipedia is CC BY-SA 4.0
+# and the Independent Mon News Agency archive has no established licence. A single
+# `license = "MIT"` would assert one permissive grant over that artifact too.
+#
+# `license-files` ships both documents in the wheel and the sdist (PEP 639)
+# without asserting an SPDX expression over the contents.
+license-files = ["LICENSE", "LICENSE-ARTIFACT.md"]
 keywords = ["mon", "mnw", "tokenizer", "nlp", "myanmar", "burmese", "text-processing"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -24,9 +34,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-# One runtime dependency, and it is a Rust wheel with no Python dependencies of
-# its own. v0.2.3 shipped `twine` — a package PUBLISHING tool — as a runtime
-# dependency, so installing this to tokenize a string pulled 31 packages / 25MB.
+# Two runtime dependencies, `tokenizers` and `regex`; `tokenizers` brings
+# `huggingface-hub` with it. v0.2.3 shipped `twine` — a package PUBLISHING tool —
+# as a runtime dependency, so installing this to tokenize a string pulled 31
+# packages / 25MB.
 #
 # `tokenizers` replaces `sentencepiece` in 1.0.0. The reason is not fashion: the
 # shipped v1 model raises `RuntimeError: INTERNAL: piece is too long` on
