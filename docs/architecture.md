@@ -364,3 +364,28 @@ downstream task, BPE wins on compression, and §1's reversal condition is met wi
 evidence rather than ecosystem convention. **That measurement does not exist yet**,
 and until it does, "most modern models use BPE" is an observation about tooling
 inertia, not about Mon.
+
+---
+
+## 11. Deferred: two inputs that do not round-trip
+
+```python
+tokenizer.encode(" abc")["ids"] == tokenizer.encode("abc")["ids"]  # True
+tokenizer.encode("a b")["ids"] == tokenizer.encode("a▁b")["ids"]  # True
+```
+
+A single leading space is dropped, and a literal U+2581 is read as a space. Both
+come from `Metaspace(prepend_scheme="always")`. The loss happens at `encode`, so
+no decoder can recover it. Both are recorded as strict xfail tests in
+`tests/test_tokenizer.py`.
+
+Everything else in the whitespace family round-trips: interior and trailing
+whitespace, tabs, newlines, NUL and control characters.
+
+**The README's measured table still holds.** The corpus it was measured on is
+stripped per line and contains no U+2581, so it excludes both cases by
+construction rather than disproving them.
+
+Fixing this needs `prepend_scheme="never"`, which changes every token id and so
+requires a retrain and a new Hub artifact. Deferred on purpose, because id
+stability is worth more than these two cases.
