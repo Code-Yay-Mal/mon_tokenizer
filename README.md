@@ -2,6 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/mon-tokenizer.svg)](https://pypi.org/project/mon-tokenizer/)
 
+A Unigram tokenizer for Mon (mnw), Burmese and English, with full byte fallback.
 Mon mixes with Burmese constantly and English routinely, so all three are trained
 on and measured separately. Anything else on the page (Thai, emoji, IPA, CJK)
 round-trips through byte fallback rather than being lost.
@@ -68,23 +69,10 @@ Without byte fallback, characters outside the vocabulary aren't flagged — they
 **deleted**, leaving fluent-looking output with content missing. That matters if
 you feed OCR output back into a corpus.
 
-Two inputs are known not to round-trip. The loss happens at `encode`, so no
-decoder can recover it:
-
-```python
-tokenizer.encode(" abc")["ids"] == tokenizer.encode("abc")["ids"]  # True
-tokenizer.encode("a b")["ids"] == tokenizer.encode("a▁b")["ids"]  # True
-```
-
-A single leading space is dropped, and a literal U+2581 is read as a space. The
-table above still holds: the corpus it was measured on is stripped per line and
-contains no U+2581, so it excludes both cases by construction rather than
-disproving them. Both are recorded as xfail tests.
-
-Fixing this needs `prepend_scheme="never"`, which changes every token id and so
-requires a retrain and a new Hub artifact. Deferred on purpose, because id
-stability is worth more than these two cases. Interior and trailing whitespace,
-tabs, newlines, NUL and control characters all round-trip.
+Two inputs do not round-trip: a single leading space is dropped, and a literal
+U+2581 is read as a space. The loss happens at `encode`. Fixing it changes every
+token id, so it is deferred on purpose; why, and why the table above still holds:
+[docs/architecture.md §11](https://github.com/Code-Yay-Mal/mon_tokenizer/blob/main/docs/architecture.md#11-deferred-two-inputs-that-do-not-round-trip).
 
 ## Normalization
 
