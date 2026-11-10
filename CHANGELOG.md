@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Releases not listed here (0.1.1–0.1.5, 0.2.1): see the PyPI release history,
 <https://pypi.org/project/mon-tokenizer/#history>.
 
+## [Unreleased]
+
+**The artifact is unchanged.** The fix is in the syllable segmenter the
+violation metric is built on.
+
+### Fixed
+
+- **Dot below before asat stays in the syllable.** NFC sorts U+1037 (combining
+  class 7) before U+103A (class 9), and the final clause required the asat
+  directly after the consonant, so `ကြောင့်` split as `['ကြော', 'င့်']`.
+- **Kinzi no longer drops its stacker.** The U+1039 after a killed final was in
+  no syllable, so `မင်္ဂလာ` came back as `['မင်', 'ဂ', 'လာ']` and the segmenter
+  did not partition the text. Of 43,879 Myanmar runs in the shipped
+  vocabulary that start at a syllable start, 192 failed the partition before
+  the fix and none fail after it.
+- The violation rates under **Measured** in the README were computed with the
+  old segmenter and have not been re-measured.
+
 ## [1.0.2] - 2026-10-15
 
 **The artifact is unchanged.** `mon_tokenizer.json` still hashes to

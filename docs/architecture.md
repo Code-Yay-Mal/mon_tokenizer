@@ -141,12 +141,14 @@ everything representable, this makes the common cases cheap.
 `syllable.py` implements:
 
 ```
-syllable := base (U+1039 base)* mark* (base U+103A mark*)*
+syllable := base (U+1039 base)* mark* (base U+1037? U+103A U+1039? mark*)*
 ```
 
 The last clause matters: **a consonant carrying U+103A ASAT is a syllable final,
 not the start of the next one.** Without it `ဒုင်စသိုင်` segments as five instead
-of three.
+of three. The optional U+1037 is there because NFC sorts dot below before asat
+(`ကြောင့်`); the optional U+1039 is kinzi (`မင်္ | ဂ | လာ`, Mon `ၚ်္`), whose
+stacker belongs to the killed final.
 
 `\X` (Unicode extended grapheme cluster) is wrong here. UAX #29 gives `GCB=Other`
 to `ါ`, `ာ` and `း`, so `\X` returns `['ကျေ', 'ာ်']` for `ကျော်` — and a metric

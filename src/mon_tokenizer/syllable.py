@@ -18,13 +18,20 @@ clean, and is blind at exactly the positions a cluster-atomicity filter targets.
 
 ## The definition used here
 
-    syllable := base (U+1039 base)* mark* (base U+103A mark*)*
+    syllable := base (U+1039 base)* mark* (base U+1037? U+103A U+1039? mark*)*
 
 Read left to right: a base character, any stacked consonants (U+1039 is the
 invisible stacker), its vowels and tone marks, and then any **killed consonants**
 — a consonant carrying U+103A ASAT is a syllable *final*, not the start of the
 next syllable. That last clause is what makes `ဒုင်စသိုင်` three syllables rather
 than five.
+
+Two details of the final clause are forced by real text. NFC sorts U+1037 dot
+below (combining class 7) before U+103A asat (class 9), so `ကြောင့်` is stored
+with the dot between the final consonant and its asat. And kinzi — `င်္` in
+`မင်္ဂလာ`, `ၚ်္` in Mon `အၚ်္ဂလိက်` — is a killed final followed by U+1039,
+written above the next consonant: the stacker stays with the final, and the
+consonant it sits on starts the next syllable (`မင်္ | ဂ | လာ`).
 
 The character classes are **derived from `unicodedata.category` over the Myanmar
 ranges**, not typed out by hand. Hand-typed ranges for this script are how
@@ -45,8 +52,10 @@ were wrong when first written and the segmenter was right each time:
 `ၝၞၟၠ` is 1 syllable, not 4; `မြန်မာ` is 2 (myan-ma), not 3. A fixture is a
 claim about the language and deserves the same scrutiny as the code.
 
-The segmenter also **exactly partitions** any Myanmar run — no gaps, no overlaps —
-which is what makes the offset arithmetic in `metrics.py` sound.
+The segmenter also **exactly partitions** any Myanmar run that begins at a
+syllable start — no gaps, no overlaps — which is what makes the offset
+arithmetic in `metrics.py` sound. A run that begins mid-syllable (a stray mark,
+or a kinzi with no syllable before it) loses those leading characters.
 """
 
 from __future__ import annotations
@@ -72,6 +81,7 @@ MYANMAR_RANGES: tuple[tuple[int, int], ...] = ((0x1000, 0x109F), (0xA9E0, 0xA9FE
 
 VIRAMA = "္"  # invisible stacker: U+1039 + consonant = subscript form
 ASAT = "်"  # visible killer: marks a consonant as a syllable final
+DOT_BELOW = "့"  # U+1037, canonical combining class 7: NFC sorts it before ASAT (9)
 
 _ALL = [
     chr(code)
@@ -93,7 +103,11 @@ def _character_class(characters: frozenset[str]) -> str:
 _B = _character_class(_BASE)
 _M = _character_class(_MARK)
 
-SYLLABLE_PATTERN = f"{_B}(?:{VIRAMA}{_B})*{_M}*(?:{_B}{ASAT}{_M}*)*"
+# The final clause takes an optional dot below *before* the asat, because NFC
+# puts it there (`င့်` normalizes to U+1004 U+1037 U+103A), and an optional
+# stacker *after* it: kinzi is a killed final written above the next consonant,
+# so its U+1039 belongs to the final (see the module docstring).
+SYLLABLE_PATTERN = f"{_B}(?:{VIRAMA}{_B})*{_M}*(?:{_B}{DOT_BELOW}?{ASAT}{VIRAMA}?{_M}*)*"
 _SYLLABLE = re.compile(SYLLABLE_PATTERN)
 
 # Every entry hand-checked against the script. Kept beside the definition it
@@ -113,6 +127,9 @@ SYLLABLE_FIXTURE: dict[str, int] = {
     "မွဲ": 1,
     "ပ္ဍဲ": 1,
     "က်": 1,
+    "ကြောင့်": 1,  # NFC order: dot below U+1037 before asat U+103A
+    "မင်္ဂလာ": 3,  # kinzi: မင်္ | ဂ | လာ
+    "အၚ်္ဂလိက်": 3,  # Mon kinzi with ၚ: အၚ်္ | ဂ | လိက်
 }
 
 

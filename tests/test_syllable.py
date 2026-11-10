@@ -8,15 +8,29 @@ clean, and the metric was blind at the script's most common syllable break.
 
 from __future__ import annotations
 
+import json
+import unicodedata
+
 import pytest
+import regex as re
 
 from mon_tokenizer.syllable import (
+    ASAT,
+    DOT_BELOW,
+    MYANMAR_RANGES,
     SYLLABLE_FIXTURE,
+    VIRAMA,
     is_combining,
     starts_mid_syllable,
     syllable_spans,
     syllables,
 )
+from mon_tokenizer.tokenizer import default_model_path
+
+ARTIFACT = default_model_path()
+MYANMAR_RUN = re.compile("[" + "".join(f"\\u{a:04X}-\\u{b:04X}" for a, b in MYANMAR_RANGES) + "]+")
+# A piece that opens on `င်္` began inside the previous syllable's final.
+KINZI_AT_START = re.compile(rf"^.{DOT_BELOW}?{ASAT}{VIRAMA}")
 
 
 @pytest.mark.parametrize(("text", "expected"), SYLLABLE_FIXTURE.items())
@@ -41,6 +55,49 @@ def test_segmentation_is_an_exact_partition(text: str):
     would be quietly wrong.
     """
     assert "".join(syllables(text)) == text
+
+
+def test_dot_below_before_asat_stays_in_the_final():
+    """NFC stores `င့်` as U+1004 U+1037 U+103A: dot below (class 7) sorts first.
+
+    The final clause once required the asat directly after the consonant, so the
+    normalized form split as `['ကြော', 'င့်']`.
+    """
+    word = unicodedata.normalize("NFC", "ကြောင့်")
+    assert word.endswith("\u1004" + DOT_BELOW + ASAT)
+    assert syllables(word) == [word]
+
+
+def test_kinzi_stacker_belongs_to_the_killed_final():
+    """Kinzi is asat followed by U+1039; the stacker was once in no syllable.
+
+    `မင်္ဂလာ` came back as `['မင်', 'ဂ', 'လာ']`, dropping U+1039 and breaking the
+    partition that the violation metric's offsets rely on.
+    """
+    assert syllables("မင်္ဂလာ") == ["မင်္", "ဂ", "လာ"]
+    assert syllables("အၚ်္ဂလိက်") == ["အၚ်္", "ဂ", "လိက်"]
+
+
+def test_segmentation_partitions_real_text_from_the_vocabulary():
+    """The partition holds over text the corpus actually contains.
+
+    The shipped vocabulary is the only corpus-derived text in this repository:
+    every piece is a substring of the training data. A run is checked when it
+    starts at a syllable start — not on a combining mark and not on a kinzi,
+    both of which mean the piece was cut mid-syllable — and does not end on a
+    dangling stacker whose consonant is in another piece.
+    """
+    vocab = json.loads(ARTIFACT.read_text(encoding="utf-8"))["model"]["vocab"]
+    runs = [run for piece, _ in vocab for run in MYANMAR_RUN.findall(piece)]
+    checked = [
+        run
+        for run in runs
+        if not is_combining(run[0]) and not run.endswith(VIRAMA) and not KINZI_AT_START.match(run)
+    ]
+    assert len(checked) > 40_000, "the sample must be large enough to mean something"
+    assert any(f"{ASAT}{VIRAMA}" in run for run in checked), "the sample must include kinzi"
+    broken = [run for run in checked if "".join(syllables(run)) != run]
+    assert broken == [], broken[:10]
 
 
 def test_killed_finals_attach_to_the_preceding_syllable():
