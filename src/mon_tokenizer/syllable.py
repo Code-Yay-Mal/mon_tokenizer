@@ -53,9 +53,11 @@ were wrong when first written and the segmenter was right each time:
 claim about the language and deserves the same scrutiny as the code.
 
 The segmenter also **exactly partitions** any Myanmar run that begins at a
-syllable start — no gaps, no overlaps — which is what makes the offset
-arithmetic in `metrics.py` sound. A run that begins mid-syllable (a stray mark,
-or a kinzi with no syllable before it) loses those leading characters.
+syllable start and does not end on a stacker outside a kinzi — no gaps, no
+overlaps — which is what makes the offset arithmetic in `metrics.py` sound. A
+run that begins mid-syllable (a stray mark, or a kinzi with no syllable before
+it) loses those leading characters, and one that ends on a stacker whose
+consonant is elsewhere loses that stacker: `သ္` gives `['သ']`.
 """
 
 from __future__ import annotations

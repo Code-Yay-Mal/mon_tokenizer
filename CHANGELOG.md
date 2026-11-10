@@ -21,8 +21,10 @@ violation metric is built on.
 - **Kinzi no longer drops its stacker.** The U+1039 after a killed final was in
   no syllable, so `မင်္ဂလာ` came back as `['မင်', 'ဂ', 'လာ']` and the segmenter
   did not partition the text. Of 43,879 Myanmar runs in the shipped
-  vocabulary that start at a syllable start, 192 failed the partition before
-  the fix and none fail after it.
+  vocabulary that start at a syllable start and do not end on a dangling
+  stacker, 192 failed the partition before the fix and none fail after it.
+  A run that ends on a stacker whose consonant is in another piece still
+  loses that stacker (`သ္` gives `['သ']`).
 - The violation rates under **Measured** in the README were computed with the
   old segmenter and have not been re-measured.
 
